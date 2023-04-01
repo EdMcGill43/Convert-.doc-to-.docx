@@ -1,30 +1,42 @@
 import os
-import pandas as pd
-from docx import Document
+import glob
+import comtypes.client
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
 
-# Set the folder path where the Word files are located
-folder_path = '/path/to/word/files'
-
-# Get all the .docx files in the folder
-docx_files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.endswith('.docx')]
-
-# Extract the data from each Word file and store it in a list
-data_list = []
-for docx_file in docx_files:
-    document = Document(docx_file)
-    for para in document.paragraphs:
-        data_list.append([para.text])
-
-# Create a Pandas dataframe with the extracted data
-df = pd.DataFrame(data_list, columns=['Data'])
-
-# Write the dataframe to an Excel file
-excel_file = '/path/to/excel/file.xlsx'
-df.to_excel(excel_file, index=False)
-
-# Show a pop-up message when the script is finished running
+# Create a GUI window to select input directory
 root = tk.Tk()
 root.withdraw()
-messagebox.showinfo(title='Extraction Complete', message='The data extraction and conversion to Excel file is completed.')
+input_dir = filedialog.askdirectory(title='Select Input Directory')
+
+# Change backslashes to forward slashes in input directory
+input_dir = input_dir.replace('\\', '/')
+
+# Get list of .doc files in directory
+doc_files = glob.glob(os.path.join(input_dir, '*.doc'))
+
+# Define function to convert .doc to .docx
+def doc_to_docx(doc_file):
+    # Define input and output filenames
+    input_file = os.path.abspath(doc_file)
+    output_file = os.path.abspath(doc_file + 'x')
+    
+    # Load Word COM server
+    word = comtypes.client.CreateObject('Word.Application')
+    
+    # Load input file
+    doc = word.Documents.Open(input_file)
+    
+    # Save as .docx file
+    doc.SaveAs(output_file, FileFormat=16)
+    
+    # Close input file and Word COM server
+    doc.Close()
+    word.Quit()
+
+# Convert each .doc file to .docx
+for doc_file in doc_files:
+    doc_to_docx(doc_file)
+
+# Show message box to indicate completion
+messagebox.showinfo(title='Conversion Complete', message='All files have been converted to .docx format.')
